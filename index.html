@@ -1,207 +1,334 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Global Real-Time Info Dashboard</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #eef2f7;
-    margin: 0;
-    padding: 20px;
-    color: #222;
-  }
-  header {
-    text-align: center;
-    margin-bottom: 30px;
-  }
-  h1 {
-    margin-bottom: 0;
-  }
-  section {
-    background: white;
-    padding: 20px;
-    margin-bottom: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px #ccc;
-    max-width: 700px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .stat {
-    font-size: 2em;
-    color: #004d99;
-    margin-bottom: 10px;
-  }
-  ul {
-    padding-left: 20px;
-  }
-  footer {
-    text-align: center;
-    margin-top: 40px;
-    font-size: 0.9em;
-    color: #555;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Global Real-Time Data Dashboard</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    integrity="sha256-sA+4fY0t47cQ23l8kOvaGVZvltw1HYl50kIbIif6zDk="
+    crossorigin=""
+  />
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #121212;
+      color: #eee;
+      display: flex;
+      overflow: hidden;
+    }
+    #map {
+      height: 100%;
+      width: 70%;
+    }
+    #sidebar {
+      width: 30%;
+      background: #1e1e1e;
+      overflow-y: auto;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+    }
+    h1 {
+      margin: 0 0 10px 0;
+      font-weight: 700;
+      font-size: 1.8rem;
+      color: #4caf50;
+      user-select: none;
+    }
+    #country-list {
+      flex-grow: 1;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+    .country-item {
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      border-radius: 5px;
+      background: #2a2a2a;
+      transition: background 0.2s;
+    }
+    .country-item:hover, .country-item.active {
+      background: #4caf50;
+      color: #121212;
+      font-weight: 700;
+    }
+    #country-details {
+      background: #2a2a2a;
+      padding: 15px;
+      border-radius: 8px;
+      min-height: 160px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    #header-text {
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+    #footer {
+      text-align: center;
+      padding: 10px;
+      font-size: 0.8rem;
+      color: #666;
+      user-select: none;
+    }
+    /* Scrollbar style */
+    #country-list::-webkit-scrollbar {
+      width: 8px;
+    }
+    #country-list::-webkit-scrollbar-thumb {
+      background-color: #4caf50;
+      border-radius: 10px;
+    }
+  </style>
 </head>
 <body>
-<header>
-  <h1>Global Real-Time Information Dashboard</h1>
-  <p>Population, Life Expectancy, Internet Risks & Weather Updates</p>
-</header>
 
-<section>
-  <h2>World Population & Vital Stats (Simulated)</h2>
-  <div id="population" class="stat">Loading population...</div>
-  <div id="births" class="stat">Loading births today...</div>
-  <div id="deaths" class="stat">Loading deaths today...</div>
-</section>
+  <div id="map"></div>
+  <div id="sidebar">
+    <h1>Global Data Dashboard</h1>
+    <div id="country-list">
+      <!-- Lista de países vai aqui -->
+    </div>
+    <div id="country-details">
+      <p>Select a country from the list or the map</p>
+    </div>
+    <div id="footer">
+      &copy; 2025 Global Data | Real-Time Info Demo
+    </div>
+  </div>
 
-<section>
-  <h2>Average Life Expectancy by Country</h2>
-  <select id="country-select">
-    <option value="USA">United States</option>
-    <option value="BRA">Brazil</option>
-    <option value="IND">India</option>
-    <option value="ZAF">South Africa</option>
-    <option value="JPN">Japan</option>
-  </select>
-  <div id="life-expectancy" class="stat">Select a country to see life expectancy</div>
-</section>
+  <script
+    src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+    integrity="sha256-oY5tZq6Yq5ynRciTQYbAx+8ucR+3qau5Q9knkF8C1jo="
+    crossorigin=""
+  ></script>
 
-<section>
-  <h2>Internet Stability & Risk Status</h2>
-  <ul id="internet-risks">
-    <li>Loading internet risk data...</li>
-  </ul>
-</section>
-
-<section>
-  <h2>Current Weather (New York City)</h2>
-  <div id="weather" class="stat">Loading weather...</div>
-</section>
-
-<footer>
-  &copy; 2025 Global Info Dashboard | Demo site
-</footer>
-
-<script>
-  // Simulated world stats
-  function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
-  function updateWorldStats() {
-    const population = 8_000_000_000 + getRandomInt(1000, 10000);
-    const birthsToday = getRandomInt(250_000, 300_000);
-    const deathsToday = getRandomInt(150_000, 200_000);
-
-    document.getElementById('population').textContent = `Population: ${population.toLocaleString()}`;
-    document.getElementById('births').textContent = `Births today: ${birthsToday.toLocaleString()}`;
-    document.getElementById('deaths').textContent = `Deaths today: ${deathsToday.toLocaleString()}`;
-  }
-
-  // Life Expectancy by Country using World Bank API
-  // API example: https://api.worldbank.org/v2/country/USA/indicator/SP.DYN.LE00.IN?format=json
-  async function fetchLifeExpectancy(countryCode) {
-    const url = `https://api.worldbank.org/v2/country/${countryCode}/indicator/SP.DYN.LE00.IN?format=json&per_page=1&date=2021`;
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data && data[1] && data[1][0] && data[1][0].value) {
-        return data[1][0].value.toFixed(1);
+  <script>
+    // Simulated data for demonstration, keyed by country code
+    // Normally você puxaria dados reais de APIs aqui (World Bank, etc.)
+    const countryData = {
+      USA: {
+        name: 'United States',
+        population: 331_000_000,
+        birthsToday: 11_000,
+        deathsToday: 7_500,
+        lifeExpectancy: 78.9,
+        internetRisk: "Stable",
+        coords: [37.0902, -95.7129],
+      },
+      BRA: {
+        name: 'Brazil',
+        population: 213_000_000,
+        birthsToday: 7_000,
+        deathsToday: 4_500,
+        lifeExpectancy: 75.5,
+        internetRisk: "Moderate - occasional outages",
+        coords: [-14.2350, -51.9253],
+      },
+      IND: {
+        name: 'India',
+        population: 1_380_000_000,
+        birthsToday: 67_000,
+        deathsToday: 28_000,
+        lifeExpectancy: 69.7,
+        internetRisk: "High - frequent disruptions in rural areas",
+        coords: [20.5937, 78.9629],
+      },
+      ZAF: {
+        name: 'South Africa',
+        population: 59_000_000,
+        birthsToday: 1_200,
+        deathsToday: 900,
+        lifeExpectancy: 64.1,
+        internetRisk: "Stable",
+        coords: [-30.5595, 22.9375],
+      },
+      JPN: {
+        name: 'Japan',
+        population: 126_000_000,
+        birthsToday: 1_000,
+        deathsToday: 1_200,
+        lifeExpectancy: 84.6,
+        internetRisk: "Very stable",
+        coords: [36.2048, 138.2529],
+      },
+      RUS: {
+        name: 'Russia',
+        population: 146_000_000,
+        birthsToday: 3_500,
+        deathsToday: 5_000,
+        lifeExpectancy: 72.4,
+        internetRisk: "Moderate",
+        coords: [61.5240, 105.3188],
+      },
+      CHN: {
+        name: 'China',
+        population: 1_440_000_000,
+        birthsToday: 47_000,
+        deathsToday: 22_000,
+        lifeExpectancy: 77.3,
+        internetRisk: "Moderate - heavy censorship risks",
+        coords: [35.8617, 104.1954],
+      },
+      AUS: {
+        name: 'Australia',
+        population: 26_000_000,
+        birthsToday: 1_000,
+        deathsToday: 700,
+        lifeExpectancy: 83.0,
+        internetRisk: "Very stable",
+        coords: [-25.2744, 133.7751],
       }
-      return 'Data not available';
-    } catch (e) {
-      return 'Error fetching data';
+    };
+
+    // Inicializa o mapa Leaflet
+    const map = L.map('map').setView([20, 0], 2);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 5,
+      minZoom: 2
+    }).addTo(map);
+
+    // Referência ao container da lista e detalhes
+    const countryList = document.getElementById('country-list');
+    const countryDetails = document.getElementById('country-details');
+
+    let activeCountryCode = null;
+    let markers = [];
+
+    // Função para criar itens na lista lateral
+    function renderCountryList() {
+      countryList.innerHTML = '';
+      Object.entries(countryData).forEach(([code, data]) => {
+        const div = document.createElement('div');
+        div.className = 'country-item';
+        div.textContent = data.name;
+        div.dataset.code = code;
+
+        div.addEventListener('click', () => {
+          selectCountry(code);
+          // centralizar o mapa na posição do país selecionado
+          map.setView(data.coords, 4, {animate: true});
+        });
+
+        countryList.appendChild(div);
+      });
     }
-  }
 
-  const lifeExpectancyDiv = document.getElementById('life-expectancy');
-  const countrySelect = document.getElementById('country-select');
-
-  async function updateLifeExpectancy() {
-    lifeExpectancyDiv.textContent = 'Loading...';
-    const country = countrySelect.value;
-    const lifeExp = await fetchLifeExpectancy(country);
-    lifeExpectancyDiv.textContent = `Life expectancy in ${country}: ${lifeExp} years`;
-  }
-
-  countrySelect.addEventListener('change', updateLifeExpectancy);
-
-  // Internet risk simulation (could be replaced with real data/APIs)
-  function updateInternetRisks() {
-    const risks = [
-      "Global BGP route instability detected",
-      "Multiple undersea cables maintenance ongoing",
-      "Increased DDoS attacks targeting critical infrastructure",
-      "Potential geopolitical threats affecting internet stability",
-      "Rising cyber espionage activities worldwide"
-    ];
-    const risksList = document.getElementById('internet-risks');
-    risksList.innerHTML = '';
-
-    // Select 3 random risks
-    const selected = [];
-    while (selected.length < 3) {
-      const r = risks[getRandomInt(0, risks.length - 1)];
-      if (!selected.includes(r)) selected.push(r);
-    }
-
-    selected.forEach(risk => {
-      const li = document.createElement('li');
-      li.textContent = risk;
-      risksList.appendChild(li);
-    });
-  }
-
-  // Weather API fetch (OpenWeatherMap example)
-  // You need to get your own API key from https://openweathermap.org/api
-  // For demo, city is fixed to New York City (lat=40.7128, lon=-74.0060)
-  const weatherDiv = document.getElementById('weather');
-  const openWeatherApiKey = 'YOUR_OPENWEATHERMAP_API_KEY';
-
-  async function fetchWeather() {
-    if (openWeatherApiKey === 'YOUR_OPENWEATHERMAP_API_KEY') {
-      weatherDiv.textContent = 'Please provide your OpenWeatherMap API key in the code.';
-      return;
-    }
-    const url = `https://api.openweathermap.org/data/2.5/weather?lat=40.7128&lon=-74.0060&units=metric&appid=${openWeatherApiKey}`;
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data && data.main) {
-        const temp = data.main.temp.toFixed(1);
-        const desc = data.weather[0].description;
-        weatherDiv.textContent = `NYC: ${temp}°C, ${desc}`;
-      } else {
-        weatherDiv.textContent = 'Weather data unavailable';
+    // Função para atualizar detalhes do país selecionado
+    function updateCountryDetails(code) {
+      const data = countryData[code];
+      if (!data) {
+        countryDetails.innerHTML = `<p>Data not available.</p>`;
+        return;
       }
-    } catch (e) {
-      weatherDiv.textContent = 'Error fetching weather data';
+      countryDetails.innerHTML = `
+        <div id="header-text">${data.name}</div>
+        <p><b>Population:</b> ${data.population.toLocaleString()}</p>
+        <p><b>Births Today:</b> ${data.birthsToday.toLocaleString()}</p>
+        <p><b>Deaths Today:</b> ${data.deathsToday.toLocaleString()}</p>
+        <p><b>Life Expectancy:</b> ${data.lifeExpectancy} years</p>
+        <p><b>Internet Risk Level:</b> ${data.internetRisk}</p>
+      `;
     }
-  }
 
-  // Update all data initially and periodically
-  function updateAll() {
-    updateWorldStats();
-    updateInternetRisks();
-    fetchWeather();
-  }
+    // Função para marcar um país como ativo na lista
+    function setActiveCountryInList(code) {
+      const items = document.querySelectorAll('.country-item');
+      items.forEach(item => {
+        if (item.dataset.code === code) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
 
-  // Run once on load
-  updateAll();
-  updateLifeExpectancy();
+    // Função geral para selecionar país
+    function selectCountry(code) {
+      activeCountryCode = code;
+      setActiveCountryInList(code);
+      updateCountryDetails(code);
+    }
 
-  // Update world stats and internet risks every 10 seconds
-  setInterval(() => {
-    updateWorldStats();
-    updateInternetRisks();
-  }, 10000);
+    // Cria marcadores no mapa para cada país com tooltip e clique para selecionar
+    function addMarkers() {
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
 
-  // Update weather every 5 minutes
-  setInterval(fetchWeather, 300000);
-</script>
+      Object.entries(countryData).forEach(([code, data]) => {
+        const marker = L.circleMarker(data.coords, {
+          radius: 10,
+          fillColor: '#4caf50',
+          color: '#2e7d32',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.7
+        });
+
+        marker.bindTooltip(`
+          <strong>${data.name}</strong><br/>
+          Population: ${data.population.toLocaleString()}<br/>
+          Life Expectancy: ${data.lifeExpectancy} years
+        `);
+
+        marker.on('click', () => {
+          selectCountry(code);
+        });
+
+        marker.addTo(map);
+        markers.push(marker);
+      });
+    }
+
+    // Simula atualização dos dados a cada 15 segundos
+    function simulateDataUpdate() {
+      Object.values(countryData).forEach(data => {
+        // pequenas variações aleatórias em números para parecer real-time
+        data.population += Math.floor(Math.random() * 1000) - 500; // +-500
+        if(data.population < 0) data.population = 0;
+
+        data.birthsToday = Math.max(0, data.birthsToday + Math.floor(Math.random() * 200) - 100);
+        data.deathsToday = Math.max(0, data.deathsToday + Math.floor(Math.random() * 200) - 100);
+
+        // internet risk pode mudar de forma leve
+        const riskLevels = [
+          "Stable",
+          "Moderate - occasional outages",
+          "High - frequent disruptions",
+          "Very stable",
+          "Moderate - heavy censorship risks"
+        ];
+        if (Math.random() < 0.1) { // 10% chance de mudar
+          data.internetRisk = riskLevels[Math.floor(Math.random() * riskLevels.length)];
+        }
+      });
+    }
+
+    // Atualiza tudo: dados + interface
+    function updateAll() {
+      simulateDataUpdate();
+      renderCountryList();
+      addMarkers();
+      if(activeCountryCode) {
+        updateCountryDetails(activeCountryCode);
+      }
+    }
+
+    // Inicializa
+    updateAll();
+
+    // Atualiza a cada 15s
+    setInterval(updateAll, 15000);
+
+  </script>
 </body>
 </html>
