@@ -175,10 +175,23 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   // Valores base (simulados)
-  const basePopulation = 7900000000;
-  const baseDeathsToday = 150000;
-  const baseBirthsToday = 380000;
-  const baseMurdersToday = 12000;
+  const baseValues = {
+    population: 7900000000,
+    deaths: 150000,
+    births: 380000,
+    murders: 12000
+  };
+
+  // Limites de variação em %
+  const variationLimits = {
+    population: 0.0001,  // quase estável
+    deaths: 0.01,
+    births: 0.015,
+    murders: 0.02
+  };
+
+  // Valores atuais, iniciados baseados no baseValues
+  let currentValues = {...baseValues};
 
   // Elementos para atualizar
   const populationEl = document.getElementById('population');
@@ -186,36 +199,45 @@
   const birthsEl = document.getElementById('births');
   const murdersEl = document.getElementById('murders');
 
-  // Variáveis para contagem gradual
-  let currentPop = 0;
-  let currentDeaths = 0;
-  let currentBirths = 0;
-  let currentMurders = 0;
-
-  // Função para atualizar texto digitando números (simula efeito em tempo real)
-  function updateNumber(el, target, current, step) {
-    if(current < target) {
-      current += step;
-      if(current > target) current = target;
-      el.textContent = current.toLocaleString('pt-BR');
-    }
-    return current;
+  // Função para atualizar o número no elemento
+  function updateDisplay(el, value) {
+    el.textContent = Math.round(value).toLocaleString('pt-BR');
   }
 
-  // Função para gerar pequenos passos aleatórios para simular crescimento real
-  function stepValue(target, current) {
-    let diff = target - current;
-    if(diff <= 0) return 0;
-    return Math.min(diff, Math.floor(Math.random() * (diff / 10 + 1)) + 1);
+  // Função para variar valor com limite positivo e negativo
+  function varyValue(base, current, limit) {
+    // Varia um valor percentual em torno do base dentro do limite
+    // Gerar variação pequena aleatória, positiva ou negativa
+    let variation = (Math.random() * 2 - 1) * limit * base; 
+    let next = current + variation;
+    // Limitar para não sair muito do base ± 3 * limit * base
+    let min = base - 3 * limit * base;
+    let max = base + 3 * limit * base;
+    if(next < min) next = min;
+    if(next > max) next = max;
+    return next;
   }
 
-  // Atualizar números a cada 50ms simulando "contagem em tempo real"
+  // Atualizar valores em loop a cada 1 segundo
   setInterval(() => {
-    currentPop = updateNumber(populationEl, basePopulation, currentPop, stepValue(basePopulation, currentPop));
-    currentDeaths = updateNumber(deathsEl, baseDeathsToday, currentDeaths, stepValue(baseDeathsToday, currentDeaths));
-    currentBirths = updateNumber(birthsEl, baseBirthsToday, currentBirths, stepValue(baseBirthsToday, currentBirths));
-    currentMurders = updateNumber(murdersEl, baseMurdersToday, currentMurders, stepValue(baseMurdersToday, currentMurders));
-  }, 50);
+    currentValues.population = varyValue(baseValues.population, currentValues.population, variationLimits.population);
+    currentValues.deaths = varyValue(baseValues.deaths, currentValues.deaths, variationLimits.deaths);
+    currentValues.births = varyValue(baseValues.births, currentValues.births, variationLimits.births);
+    currentValues.murders = varyValue(baseValues.murders, currentValues.murders, variationLimits.murders);
+
+    updateDisplay(populationEl, currentValues.population);
+    updateDisplay(deathsEl, currentValues.deaths);
+    updateDisplay(birthsEl, currentValues.births);
+    updateDisplay(murdersEl, currentValues.murders);
+
+    // Atualizar os gráficos
+    birthDeathChart.data.datasets[0].data = [
+      currentValues.births,
+      currentValues.deaths,
+      currentValues.murders
+    ];
+    birthDeathChart.update();
+  }, 1000);
 
   // Gráfico Nascimentos vs Óbitos
   const ctx1 = document.getElementById('birthDeathChart').getContext('2d');
@@ -225,13 +247,13 @@
       labels: ['Nascimentos Hoje', 'Óbitos Hoje', 'Assassinatos Estimados Hoje'],
       datasets: [{
         label: 'Número de Pessoas',
-        data: [baseBirthsToday, baseDeathsToday, baseMurdersToday],
+        data: [baseValues.births, baseValues.deaths, baseValues.murders],
         backgroundColor: ['#4caf50', '#f44336', '#9c27b0']
       }]
     },
     options: {
       responsive: true,
-      animation: { duration: 1000 },
+      animation: { duration: 500 },
       scales: {
         y: { beginAtZero: true }
       },
