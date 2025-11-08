@@ -1,525 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Global Real-Time Info Dashboard</title>
-
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
-    integrity="sha256-sA+4fY0t47cQ23l8kOvaGVZvltw1HYl50kIbIif6zDk="
-    crossorigin=""
-  />
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: 'Roboto', sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      color: #eee;
-      display: flex;
-      overflow: hidden;
-      user-select: none;
-    }
-
-    #map {
-      width: 65%;
-      height: 100%;
-      filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.5));
-      border-right: 3px solid #1fb57f;
-      transition: filter 0.3s ease;
-    }
-    #map:hover {
-      filter: drop-shadow(0 0 15px #1fb57f);
-    }
-
-    #sidebar {
-      width: 35%;
-      background: #121a22cc;
-      backdrop-filter: saturate(180%) blur(10px);
-      padding: 25px 30px;
-      display: flex;
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Global Info Dashboard</title>
+<style>
+  /* Reset & basic */
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #121212;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 0;
+  }
+  header {
+    background: #1f1f1f;
+    padding: 1rem 2rem;
+    text-align: center;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #4caf50;
+  }
+  main {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+  section {
+    background: #222;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    box-shadow: 0 0 10px #080;
+  }
+  h2 {
+    color: #4caf50;
+    margin-bottom: 1rem;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+    gap: 1rem;
+  }
+  .stat-card {
+    background: #333;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 0 8px #2ecc71;
+  }
+  .stat-card h3 {
+    margin: 0.5rem 0;
+    font-size: 1.5rem;
+    color: #a5d6a7;
+  }
+  .stat-card p {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  .charts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+  }
+  canvas {
+    background: #111;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #4caf50;
+  }
+  .geopolitics {
+    line-height: 1.5;
+  }
+  .image-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+  .image-row img {
+    max-width: 300px;
+    border-radius: 8px;
+    box-shadow: 0 0 8px #2ecc71;
+  }
+  footer {
+    text-align: center;
+    padding: 1rem 0;
+    color: #555;
+    font-size: 0.9rem;
+  }
+  @media(max-width: 600px){
+    .charts {
       flex-direction: column;
-      box-shadow: inset 0 0 20px #1fb57f88;
-      border-left: 3px solid #1fb57f;
-    }
-
-    #sidebar h1 {
-      font-weight: 700;
-      margin: 0 0 20px 0;
-      font-size: 2rem;
-      color: #1fb57f;
-      letter-spacing: 2px;
-      text-shadow: 0 0 6px #1fb57fbb;
-    }
-
-    #country-list {
-      flex: 1;
-      overflow-y: auto;
-      margin-bottom: 20px;
-      border-radius: 10px;
-      border: 1.5px solid #1fb57f77;
-      background: rgba(0, 0, 0, 0.35);
-      box-shadow: 0 0 8px #1fb57f55;
-    }
-
-    .country-item {
-      padding: 12px 20px;
-      border-bottom: 1px solid #1fb57f33;
-      cursor: pointer;
-      transition: background 0.25s ease, color 0.25s ease;
-      font-weight: 500;
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-      color: #cde5d6;
-      letter-spacing: 0.3px;
     }
-
-    .country-item:last-child {
-      border-bottom: none;
-    }
-
-    .country-item:hover {
-      background: #1fb57fdd;
-      color: #121a22;
-      font-weight: 700;
-      text-shadow: none;
-    }
-
-    .country-item.active {
-      background: #1fb57fcc;
-      color: #121a22;
-      font-weight: 700;
-      box-shadow: 0 0 8px #1fb57faa;
-    }
-
-    #country-details {
-      background: rgba(0,0,0,0.4);
-      padding: 25px 20px;
-      border-radius: 14px;
-      box-shadow: 0 0 10px #1fb57fbb;
-      color: #d4ffe8;
-      font-size: 1rem;
-      min-height: 360px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    #country-details h2 {
-      margin: 0 0 12px 0;
-      font-size: 1.6rem;
-      letter-spacing: 1px;
-      text-shadow: 0 0 6px #1fb57fbb;
-    }
-
-    #details-text p {
-      margin: 6px 0;
-      line-height: 1.5;
-    }
-
-    #charts {
-      margin-top: 15px;
-      flex-grow: 1;
-      display: flex;
-      justify-content: space-around;
-      gap: 18px;
-      padding-top: 8px;
-    }
-
-    canvas {
-      background: rgba(31, 181, 127, 0.15);
-      border-radius: 12px;
-      box-shadow: 0 0 12px #1fb57fbb;
-      flex: 1;
-      max-width: 150px;
-      height: 140px !important;
-      user-select: none;
-    }
-
-    #footer {
-      text-align: center;
-      font-size: 0.8rem;
-      padding-top: 15px;
-      color: #1fb57fbb;
-      letter-spacing: 1.2px;
-      font-weight: 600;
-      user-select: none;
-    }
-
-    /* Scrollbar */
-    #country-list::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    #country-list::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    #country-list::-webkit-scrollbar-thumb {
-      background: #1fb57fbb;
-      border-radius: 10px;
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
-  <div id="map"></div>
+<header>Global Real-Time Info Dashboard</header>
+<main>
 
-  <div id="sidebar">
-    <h1>Global Data Hub</h1>
-    <div id="country-list" aria-label="List of countries" role="list"></div>
-
-    <div id="country-details" aria-live="polite" aria-atomic="true">
-      <p style="color:#aaa; font-style: italic;">Select a country from the list or the map to view detailed data.</p>
+  <section>
+    <h2>World Statistics (Estimated)</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <p>🌍 Population</p>
+        <h3 id="population">7,900,000,000</h3>
+      </div>
+      <div class="stat-card">
+        <p>⚰️ Deaths Today</p>
+        <h3 id="deaths">150,000</h3>
+      </div>
+      <div class="stat-card">
+        <p>👶 Births Today</p>
+        <h3 id="births">380,000</h3>
+      </div>
+      <div class="stat-card">
+        <p>🔪 Estimated Murders Today</p>
+        <h3 id="murders">12,000</h3>
+      </div>
     </div>
+  </section>
 
-    <div id="footer">© 2025 Global Data Hub - Real-Time Demo</div>
-  </div>
+  <section>
+    <h2>Geopolitical Risks & Future Outlook</h2>
+    <div class="geopolitics">
+      <p>The ongoing conflict between <strong>Russia and Ukraine</strong> has escalated tensions in Eastern Europe, raising concerns about a potential broader war. Experts warn that if the conflict expands, the <strong>NATO alliance</strong> and surrounding regions could be severely affected.</p>
+      <p>Recent diplomatic movements indicate growing cooperation between <strong>China and North Korea</strong>, with possible implications for power dynamics in East Asia.</p>
+      <p>Forecast models suggest that global risks of cyberattacks threaten the stability of international infrastructure, potentially disrupting communications worldwide.</p>
+      <p>Watch for rising geopolitical alliances and rivalries that might set the stage for future global conflicts.</p>
+    </div>
+    <div class="image-row">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Flag-map_of_the_World_%282015%29.png" alt="World Map" />
+      <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/Peace_Dove_Silhouette.svg" alt="Peace Symbol" />
+      <img src="https://upload.wikimedia.org/wikipedia/commons/f/f7/Flag_of_the_United_Nations.svg" alt="United Nations Flag" />
+    </div>
+  </section>
 
-  <!-- Leaflet JS -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
-    integrity="sha256-oY5tZq6Yq5ynRciTQYbAx+8ucR+3qau5Q9knkF8C1jo="
-    crossorigin=""
-  ></script>
+  <section>
+    <h2>Visual Data</h2>
+    <div class="charts">
+      <canvas id="birthDeathChart" width="400" height="300"></canvas>
+      <canvas id="riskChart" width="400" height="300"></canvas>
+    </div>
+  </section>
 
-  <script>
-    // Dados simulados (mesmo conceito do anterior, mas melhorados)
-    const countryData = {
-      USA: {
-        name: 'United States',
-        population: 331_449_281,
-        birthsToday: 11345,
-        deathsToday: 7532,
-        lifeExpectancy: 78.9,
-        internetRisk: "Stable",
-        coords: [37.0902, -95.7129],
+</main>
+<footer>© 2025 Global Info Dashboard | Data estimates for demonstration purposes</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Data simulation for demonstration
+  const population = 7900000000;
+  const deathsToday = 150000;
+  const birthsToday = 380000;
+  const murdersToday = 12000;
+
+  // Update stats on page
+  document.getElementById('population').textContent = population.toLocaleString();
+  document.getElementById('deaths').textContent = deathsToday.toLocaleString();
+  document.getElementById('births').textContent = birthsToday.toLocaleString();
+  document.getElementById('murders').textContent = murdersToday.toLocaleString();
+
+  // Chart: Births vs Deaths
+  const ctx1 = document.getElementById('birthDeathChart').getContext('2d');
+  const birthDeathChart = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: ['Births Today', 'Deaths Today', 'Murders Today'],
+      datasets: [{
+        label: 'Number of People',
+        data: [birthsToday, deathsToday, murdersToday],
+        backgroundColor: ['#4caf50', '#f44336', '#9c27b0']
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true }
       },
-      BRA: {
-        name: 'Brazil',
-        population: 213_993_437,
-        birthsToday: 7053,
-        deathsToday: 4497,
-        lifeExpectancy: 75.5,
-        internetRisk: "Moderate - occasional outages",
-        coords: [-14.2350, -51.9253],
-      },
-      IND: {
-        name: 'India',
-        population: 1_380_004_385,
-        birthsToday: 67234,
-        deathsToday: 28123,
-        lifeExpectancy: 69.7,
-        internetRisk: "High - frequent disruptions in rural areas",
-        coords: [20.5937, 78.9629],
-      },
-      ZAF: {
-        name: 'South Africa',
-        population: 59859227,
-        birthsToday: 1190,
-        deathsToday: 897,
-        lifeExpectancy: 64.1,
-        internetRisk: "Stable",
-        coords: [-30.5595, 22.9375],
-      },
-      JPN: {
-        name: 'Japan',
-        population: 125960000,
-        birthsToday: 1002,
-        deathsToday: 1210,
-        lifeExpectancy: 84.6,
-        internetRisk: "Very stable",
-        coords: [36.2048, 138.2529],
-      },
-      RUS: {
-        name: 'Russia',
-        population: 146171015,
-        birthsToday: 3548,
-        deathsToday: 4987,
-        lifeExpectancy: 72.4,
-        internetRisk: "Moderate",
-        coords: [61.5240, 105.3188],
-      },
-      CHN: {
-        name: 'China',
-        population: 1_440_000_000,
-        birthsToday: 47432,
-        deathsToday: 21896,
-        lifeExpectancy: 77.3,
-        internetRisk: "Moderate - heavy censorship risks",
-        coords: [35.8617, 104.1954],
-      },
-      AUS: {
-        name: 'Australia',
-        population: 26000000,
-        birthsToday: 1012,
-        deathsToday: 698,
-        lifeExpectancy: 83.0,
-        internetRisk: "Very stable",
-        coords: [-25.2744, 133.7751],
+      plugins: {
+        legend: { display: false }
       }
-    };
+    }
+  });
 
-    // Inicializa mapa
-    const map = L.map('map', {
-      minZoom: 2,
-      maxZoom: 5,
-      zoomControl: true,
-      attributionControl: false
-    }).setView([20, 0], 2);
-
-    // Tile layer estilizado escuro (CartoDB Dark Matter)
-    L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-      {
-        maxZoom: 19,
-        subdomains: 'abcd',
+  // Chart: Geopolitical Risk Levels (simulated)
+  const ctx2 = document.getElementById('riskChart').getContext('2d');
+  const riskChart = new Chart(ctx2, {
+    type: 'radar',
+    data: {
+      labels: ['Eastern Europe', 'East Asia', 'Middle East', 'Cybersecurity', 'Global Stability'],
+      datasets: [{
+        label: 'Risk Level (0-10)',
+        data: [8, 7, 6, 9, 7],
+        backgroundColor: 'rgba(244, 67, 54, 0.4)',
+        borderColor: '#f44336',
+        pointBackgroundColor: '#f44336',
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 10,
+          ticks: { stepSize: 1 }
+        }
+      },
+      plugins: {
+        legend: { position: 'top' }
       }
-    ).addTo(map);
-
-    const countryList = document.getElementById('country-list');
-    const countryDetails = document.getElementById('country-details');
-
-    let activeCountryCode = null;
-    let markers = [];
-
-    // Cria lista lateral
-    function renderCountryList() {
-      countryList.innerHTML = '';
-      Object.entries(countryData).forEach(([code, data]) => {
-        const div = document.createElement('div');
-        div.className = 'country-item';
-        div.textContent = data.name;
-        div.dataset.code = code;
-
-        div.addEventListener('click', () => {
-          selectCountry(code);
-          map.flyTo(data.coords, 4, { duration: 1.2 });
-        });
-
-        countryList.appendChild(div);
-      });
     }
+  });
+</script>
 
-    // Atualiza o painel de detalhes, incluindo gráficos
-    function updateCountryDetails(code) {
-      const data = countryData[code];
-      if (!data) {
-        countryDetails.innerHTML = `<p>Data not available.</p>`;
-        return;
-      }
-
-      countryDetails.innerHTML = `
-        <h2>${data.name}</h2>
-        <div id="details-text">
-          <p><strong>Population:</strong> ${data.population.toLocaleString()}</p>
-          <p><strong>Births Today:</strong> ${data.birthsToday.toLocaleString()}</p>
-          <p><strong>Deaths Today:</strong> ${data.deathsToday.toLocaleString()}</p>
-          <p><strong>Life Expectancy:</strong> ${data.lifeExpectancy} years</p>
-          <p><strong>Internet Risk Level:</strong> ${data.internetRisk}</p>
-        </div>
-        <div id="charts">
-          <canvas id="popChart"></canvas>
-          <canvas id="birthChart"></canvas>
-          <canvas id="deathChart"></canvas>
-        </div>
-      `;
-
-      // Criar gráficos Chart.js para população, nascimentos e mortes
-      const popCtx = document.getElementById('popChart').getContext('2d');
-      const birthCtx = document.getElementById('birthChart').getContext('2d');
-      const deathCtx = document.getElementById('deathChart').getContext('2d');
-
-      // Limpar gráficos anteriores (se existirem)
-      if(window.popChartInstance) window.popChartInstance.destroy();
-      if(window.birthChartInstance) window.birthChartInstance.destroy();
-      if(window.deathChartInstance) window.deathChartInstance.destroy();
-
-      window.popChartInstance = new Chart(popCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Population'],
-          datasets: [{
-            label: 'Population',
-            data: [data.population],
-            backgroundColor: ['#1fb57f'],
-            hoverOffset: 20
-          }]
-        },
-        options: {
-          cutout: '70%',
-          plugins: { legend: { display: false }, tooltip: { enabled: true }},
-          animation: { duration: 1200, easing: 'easeOutBounce' }
-        }
-      });
-
-      window.birthChartInstance = new Chart(birthCtx, {
-        type: 'bar',
-        data: {
-          labels: ['Births Today'],
-          datasets: [{
-            label: 'Births',
-            data: [data.birthsToday],
-            backgroundColor: '#76c893'
-          }]
-        },
-        options: {
-          scales: { y: { beginAtZero: true } },
-          plugins: { legend: { display: false }, tooltip: { enabled: true }},
-          animation: { duration: 1200, easing: 'easeOutQuart' }
-        }
-      });
-
-      window.deathChartInstance = new Chart(deathCtx, {
-        type: 'bar',
-        data: {
-          labels: ['Deaths Today'],
-          datasets: [{
-            label: 'Deaths',
-            data: [data.deathsToday],
-            backgroundColor: '#f25f5c'
-          }]
-        },
-        options: {
-          scales: { y: { beginAtZero: true } },
-          plugins: { legend: { display: false }, tooltip: { enabled: true }},
-          animation: { duration: 1200, easing: 'easeOutQuart' }
-        }
-      });
-    }
-
-    // Marca um país como ativo na lista lateral
-    function setActiveCountryInList(code) {
-      const items = document.querySelectorAll('.country-item');
-      items.forEach(item => {
-        item.classList.toggle('active', item.dataset.code === code);
-      });
-    }
-
-    // Seleciona país (clique lista/mapa)
-    function selectCountry(code) {
-      if (activeCountryCode === code) return; // já ativo
-
-      activeCountryCode = code;
-      setActiveCountryInList(code);
-      updateCountryDetails(code);
-    }
-
-    // Cria marcadores do mapa com animação (círculos pulse)
-    function addMarkers() {
-      // remove marcadores anteriores
-      markers.forEach(m => map.removeLayer(m));
-      markers = [];
-
-      Object.entries(countryData).forEach(([code, data]) => {
-        const pulseIcon = L.divIcon({
-          className: 'pulse-marker',
-          iconSize: [20, 20],
-          html: `<span style="background:#1fb57f"></span>`,
-        });
-
-        const marker = L.marker(data.coords, { icon: pulseIcon });
-
-        marker.bindTooltip(
-          `<strong>${data.name}</strong><br/>
-          Population: ${data.population.toLocaleString()}<br/>
-          Life Expectancy: ${data.lifeExpectancy} years`,
-          { direction: 'top', offset: [0, -12], opacity: 0.8 }
-        );
-
-        marker.on('click', () => {
-          selectCountry(code);
-          map.flyTo(data.coords, 4, { duration: 1.3 });
-        });
-
-        marker.addTo(map);
-        markers.push(marker);
-      });
-    }
-
-    // Simula pequenas atualizações dos dados (cada 15s)
-    function simulateDataUpdate() {
-      Object.values(countryData).forEach(data => {
-        data.population = Math.max(0, data.population + Math.floor(Math.random() * 2000 - 1000));
-        data.birthsToday = Math.max(0, data.birthsToday + Math.floor(Math.random() * 100 - 50));
-        data.deathsToday = Math.max(0, data.deathsToday + Math.floor(Math.random() * 100 - 50));
-
-        const risks = [
-          "Stable",
-          "Moderate - occasional outages",
-          "High - frequent disruptions",
-          "Very stable",
-          "Moderate - heavy censorship risks"
-        ];
-        if(Math.random() < 0.15) {
-          data.internetRisk = risks[Math.floor(Math.random() * risks.length)];
-        }
-      });
-    }
-
-    // Atualiza tudo: dados + interface
-    function updateAll() {
-      simulateDataUpdate();
-      renderCountryList();
-      addMarkers();
-      if(activeCountryCode) updateCountryDetails(activeCountryCode);
-    }
-
-    // Inicializa o painel
-    renderCountryList();
-    addMarkers();
-
-    // Atualiza tudo a cada 15s
-    setInterval(updateAll, 15000);
-
-    // CSS para pulso dos marcadores no mapa
-    const style = document.createElement('style');
-    style.textContent = `
-      .pulse-marker span {
-        display: block;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: #1fb57f;
-        box-shadow:
-          0 0 10px 2px #1fb57f88,
-          0 0 15px 8px #1fb57f55;
-        animation: pulse 2.5s infinite;
-        border: 2.5px solid #1fb57fcc;
-               margin-left: -9px;
-        margin-top: -9px;
-      }
-
-      @keyframes pulse {
-        0% {
-          transform: scale(0.9);
-          opacity: 1;
-        }
-        70% {
-          transform: scale(1.4);
-          opacity: 0;
-        }
-        100% {
-          transform: scale(0.9);
-          opacity: 0;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  </script>
 </body>
 </html>
