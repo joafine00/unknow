@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Global Real-Time Info Dashboard</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+    margin: 0;
+    padding: 20px;
+    color: #222;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  h1 {
+    margin-bottom: 0;
+  }
+  section {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #ccc;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .stat {
+    font-size: 2em;
+    color: #004d99;
+    margin-bottom: 10px;
+  }
+  ul {
+    padding-left: 20px;
+  }
+  footer {
+    text-align: center;
+    margin-top: 40px;
+    font-size: 0.9em;
+    color: #555;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Global Real-Time Information Dashboard</h1>
+  <p>Population, Life Expectancy, Internet Risks & Weather Updates</p>
+</header>
+
+<section>
+  <h2>World Population & Vital Stats (Simulated)</h2>
+  <div id="population" class="stat">Loading population...</div>
+  <div id="births" class="stat">Loading births today...</div>
+  <div id="deaths" class="stat">Loading deaths today...</div>
+</section>
+
+<section>
+  <h2>Average Life Expectancy by Country</h2>
+  <select id="country-select">
+    <option value="USA">United States</option>
+    <option value="BRA">Brazil</option>
+    <option value="IND">India</option>
+    <option value="ZAF">South Africa</option>
+    <option value="JPN">Japan</option>
+  </select>
+  <div id="life-expectancy" class="stat">Select a country to see life expectancy</div>
+</section>
+
+<section>
+  <h2>Internet Stability & Risk Status</h2>
+  <ul id="internet-risks">
+    <li>Loading internet risk data...</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Current Weather (New York City)</h2>
+  <div id="weather" class="stat">Loading weather...</div>
+</section>
+
+<footer>
+  &copy; 2025 Global Info Dashboard | Demo site
+</footer>
+
+<script>
+  // Simulated world stats
+  function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function updateWorldStats() {
+    const population = 8_000_000_000 + getRandomInt(1000, 10000);
+    const birthsToday = getRandomInt(250_000, 300_000);
+    const deathsToday = getRandomInt(150_000, 200_000);
+
+    document.getElementById('population').textContent = `Population: ${population.toLocaleString()}`;
+    document.getElementById('births').textContent = `Births today: ${birthsToday.toLocaleString()}`;
+    document.getElementById('deaths').textContent = `Deaths today: ${deathsToday.toLocaleString()}`;
+  }
+
+  // Life Expectancy by Country using World Bank API
+  // API example: https://api.worldbank.org/v2/country/USA/indicator/SP.DYN.LE00.IN?format=json
+  async function fetchLifeExpectancy(countryCode) {
+    const url = `https://api.worldbank.org/v2/country/${countryCode}/indicator/SP.DYN.LE00.IN?format=json&per_page=1&date=2021`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data && data[1] && data[1][0] && data[1][0].value) {
+        return data[1][0].value.toFixed(1);
+      }
+      return 'Data not available';
+    } catch (e) {
+      return 'Error fetching data';
+    }
+  }
+
+  const lifeExpectancyDiv = document.getElementById('life-expectancy');
+  const countrySelect = document.getElementById('country-select');
+
+  async function updateLifeExpectancy() {
+    lifeExpectancyDiv.textContent = 'Loading...';
+    const country = countrySelect.value;
+    const lifeExp = await fetchLifeExpectancy(country);
+    lifeExpectancyDiv.textContent = `Life expectancy in ${country}: ${lifeExp} years`;
+  }
+
+  countrySelect.addEventListener('change', updateLifeExpectancy);
+
+  // Internet risk simulation (could be replaced with real data/APIs)
+  function updateInternetRisks() {
+    const risks = [
+      "Global BGP route instability detected",
+      "Multiple undersea cables maintenance ongoing",
+      "Increased DDoS attacks targeting critical infrastructure",
+      "Potential geopolitical threats affecting internet stability",
+      "Rising cyber espionage activities worldwide"
+    ];
+    const risksList = document.getElementById('internet-risks');
+    risksList.innerHTML = '';
+
+    // Select 3 random risks
+    const selected = [];
+    while (selected.length < 3) {
+      const r = risks[getRandomInt(0, risks.length - 1)];
+      if (!selected.includes(r)) selected.push(r);
+    }
+
+    selected.forEach(risk => {
+      const li = document.createElement('li');
+      li.textContent = risk;
+      risksList.appendChild(li);
+    });
+  }
+
+  // Weather API fetch (OpenWeatherMap example)
+  // You need to get your own API key from https://openweathermap.org/api
+  // For demo, city is fixed to New York City (lat=40.7128, lon=-74.0060)
+  const weatherDiv = document.getElementById('weather');
+  const openWeatherApiKey = 'YOUR_OPENWEATHERMAP_API_KEY';
+
+  async function fetchWeather() {
+    if (openWeatherApiKey === 'YOUR_OPENWEATHERMAP_API_KEY') {
+      weatherDiv.textContent = 'Please provide your OpenWeatherMap API key in the code.';
+      return;
+    }
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=40.7128&lon=-74.0060&units=metric&appid=${openWeatherApiKey}`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data && data.main) {
+        const temp = data.main.temp.toFixed(1);
+        const desc = data.weather[0].description;
+        weatherDiv.textContent = `NYC: ${temp}°C, ${desc}`;
+      } else {
+        weatherDiv.textContent = 'Weather data unavailable';
+      }
+    } catch (e) {
+      weatherDiv.textContent = 'Error fetching weather data';
+    }
+  }
+
+  // Update all data initially and periodically
+  function updateAll() {
+    updateWorldStats();
+    updateInternetRisks();
+    fetchWeather();
+  }
+
+  // Run once on load
+  updateAll();
+  updateLifeExpectancy();
+
+  // Update world stats and internet risks every 10 seconds
+  setInterval(() => {
+    updateWorldStats();
+    updateInternetRisks();
+  }, 10000);
+
+  // Update weather every 5 minutes
+  setInterval(fetchWeather, 300000);
+</script>
+</body>
+</html>
