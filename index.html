@@ -3,107 +3,194 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Global Real-Time Data Dashboard</title>
+  <title>Global Real-Time Info Dashboard</title>
+
+  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
     integrity="sha256-sA+4fY0t47cQ23l8kOvaGVZvltw1HYl50kIbIif6zDk="
     crossorigin=""
   />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+    }
+
     body, html {
-      height: 100%;
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #121212;
+      padding: 0;
+      height: 100%;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
       color: #eee;
       display: flex;
       overflow: hidden;
+      user-select: none;
     }
+
     #map {
+      width: 65%;
       height: 100%;
-      width: 70%;
+      filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.5));
+      border-right: 3px solid #1fb57f;
+      transition: filter 0.3s ease;
     }
+    #map:hover {
+      filter: drop-shadow(0 0 15px #1fb57f);
+    }
+
     #sidebar {
-      width: 30%;
-      background: #1e1e1e;
-      overflow-y: auto;
-      padding: 20px;
-      box-sizing: border-box;
+      width: 35%;
+      background: #121a22cc;
+      backdrop-filter: saturate(180%) blur(10px);
+      padding: 25px 30px;
       display: flex;
       flex-direction: column;
+      box-shadow: inset 0 0 20px #1fb57f88;
+      border-left: 3px solid #1fb57f;
     }
-    h1 {
-      margin: 0 0 10px 0;
+
+    #sidebar h1 {
       font-weight: 700;
-      font-size: 1.8rem;
-      color: #4caf50;
+      margin: 0 0 20px 0;
+      font-size: 2rem;
+      color: #1fb57f;
+      letter-spacing: 2px;
+      text-shadow: 0 0 6px #1fb57fbb;
+    }
+
+    #country-list {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      border: 1.5px solid #1fb57f77;
+      background: rgba(0, 0, 0, 0.35);
+      box-shadow: 0 0 8px #1fb57f55;
+    }
+
+    .country-item {
+      padding: 12px 20px;
+      border-bottom: 1px solid #1fb57f33;
+      cursor: pointer;
+      transition: background 0.25s ease, color 0.25s ease;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #cde5d6;
+      letter-spacing: 0.3px;
+    }
+
+    .country-item:last-child {
+      border-bottom: none;
+    }
+
+    .country-item:hover {
+      background: #1fb57fdd;
+      color: #121a22;
+      font-weight: 700;
+      text-shadow: none;
+    }
+
+    .country-item.active {
+      background: #1fb57fcc;
+      color: #121a22;
+      font-weight: 700;
+      box-shadow: 0 0 8px #1fb57faa;
+    }
+
+    #country-details {
+      background: rgba(0,0,0,0.4);
+      padding: 25px 20px;
+      border-radius: 14px;
+      box-shadow: 0 0 10px #1fb57fbb;
+      color: #d4ffe8;
+      font-size: 1rem;
+      min-height: 360px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    #country-details h2 {
+      margin: 0 0 12px 0;
+      font-size: 1.6rem;
+      letter-spacing: 1px;
+      text-shadow: 0 0 6px #1fb57fbb;
+    }
+
+    #details-text p {
+      margin: 6px 0;
+      line-height: 1.5;
+    }
+
+    #charts {
+      margin-top: 15px;
+      flex-grow: 1;
+      display: flex;
+      justify-content: space-around;
+      gap: 18px;
+      padding-top: 8px;
+    }
+
+    canvas {
+      background: rgba(31, 181, 127, 0.15);
+      border-radius: 12px;
+      box-shadow: 0 0 12px #1fb57fbb;
+      flex: 1;
+      max-width: 150px;
+      height: 140px !important;
       user-select: none;
     }
-    #country-list {
-      flex-grow: 1;
-      overflow-y: auto;
-      margin-bottom: 10px;
-    }
-    .country-item {
-      padding: 8px 12px;
-      margin-bottom: 6px;
-      cursor: pointer;
-      border-radius: 5px;
-      background: #2a2a2a;
-      transition: background 0.2s;
-    }
-    .country-item:hover, .country-item.active {
-      background: #4caf50;
-      color: #121212;
-      font-weight: 700;
-    }
-    #country-details {
-      background: #2a2a2a;
-      padding: 15px;
-      border-radius: 8px;
-      min-height: 160px;
-      font-size: 0.9rem;
-      line-height: 1.4;
-    }
-    #header-text {
-      font-size: 1.1rem;
-      margin-bottom: 5px;
-      font-weight: 600;
-    }
+
     #footer {
       text-align: center;
-      padding: 10px;
       font-size: 0.8rem;
-      color: #666;
+      padding-top: 15px;
+      color: #1fb57fbb;
+      letter-spacing: 1.2px;
+      font-weight: 600;
       user-select: none;
     }
-    /* Scrollbar style */
+
+    /* Scrollbar */
     #country-list::-webkit-scrollbar {
       width: 8px;
     }
+
+    #country-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
     #country-list::-webkit-scrollbar-thumb {
-      background-color: #4caf50;
+      background: #1fb57fbb;
       border-radius: 10px;
     }
   </style>
 </head>
 <body>
-
   <div id="map"></div>
+
   <div id="sidebar">
-    <h1>Global Data Dashboard</h1>
-    <div id="country-list">
-      <!-- Lista de países vai aqui -->
+    <h1>Global Data Hub</h1>
+    <div id="country-list" aria-label="List of countries" role="list"></div>
+
+    <div id="country-details" aria-live="polite" aria-atomic="true">
+      <p style="color:#aaa; font-style: italic;">Select a country from the list or the map to view detailed data.</p>
     </div>
-    <div id="country-details">
-      <p>Select a country from the list or the map</p>
-    </div>
-    <div id="footer">
-      &copy; 2025 Global Data | Real-Time Info Demo
-    </div>
+
+    <div id="footer">© 2025 Global Data Hub - Real-Time Demo</div>
   </div>
 
+  <!-- Leaflet JS -->
   <script
     src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
     integrity="sha256-oY5tZq6Yq5ynRciTQYbAx+8ucR+3qau5Q9knkF8C1jo="
@@ -111,59 +198,58 @@
   ></script>
 
   <script>
-    // Simulated data for demonstration, keyed by country code
-    // Normally você puxaria dados reais de APIs aqui (World Bank, etc.)
+    // Dados simulados (mesmo conceito do anterior, mas melhorados)
     const countryData = {
       USA: {
         name: 'United States',
-        population: 331_000_000,
-        birthsToday: 11_000,
-        deathsToday: 7_500,
+        population: 331_449_281,
+        birthsToday: 11345,
+        deathsToday: 7532,
         lifeExpectancy: 78.9,
         internetRisk: "Stable",
         coords: [37.0902, -95.7129],
       },
       BRA: {
         name: 'Brazil',
-        population: 213_000_000,
-        birthsToday: 7_000,
-        deathsToday: 4_500,
+        population: 213_993_437,
+        birthsToday: 7053,
+        deathsToday: 4497,
         lifeExpectancy: 75.5,
         internetRisk: "Moderate - occasional outages",
         coords: [-14.2350, -51.9253],
       },
       IND: {
         name: 'India',
-        population: 1_380_000_000,
-        birthsToday: 67_000,
-        deathsToday: 28_000,
+        population: 1_380_004_385,
+        birthsToday: 67234,
+        deathsToday: 28123,
         lifeExpectancy: 69.7,
         internetRisk: "High - frequent disruptions in rural areas",
         coords: [20.5937, 78.9629],
       },
       ZAF: {
         name: 'South Africa',
-        population: 59_000_000,
-        birthsToday: 1_200,
-        deathsToday: 900,
+        population: 59859227,
+        birthsToday: 1190,
+        deathsToday: 897,
         lifeExpectancy: 64.1,
         internetRisk: "Stable",
         coords: [-30.5595, 22.9375],
       },
       JPN: {
         name: 'Japan',
-        population: 126_000_000,
-        birthsToday: 1_000,
-        deathsToday: 1_200,
+        population: 125960000,
+        birthsToday: 1002,
+        deathsToday: 1210,
         lifeExpectancy: 84.6,
         internetRisk: "Very stable",
         coords: [36.2048, 138.2529],
       },
       RUS: {
         name: 'Russia',
-        population: 146_000_000,
-        birthsToday: 3_500,
-        deathsToday: 5_000,
+        population: 146171015,
+        birthsToday: 3548,
+        deathsToday: 4987,
         lifeExpectancy: 72.4,
         internetRisk: "Moderate",
         coords: [61.5240, 105.3188],
@@ -171,40 +257,47 @@
       CHN: {
         name: 'China',
         population: 1_440_000_000,
-        birthsToday: 47_000,
-        deathsToday: 22_000,
+        birthsToday: 47432,
+        deathsToday: 21896,
         lifeExpectancy: 77.3,
         internetRisk: "Moderate - heavy censorship risks",
         coords: [35.8617, 104.1954],
       },
       AUS: {
         name: 'Australia',
-        population: 26_000_000,
-        birthsToday: 1_000,
-        deathsToday: 700,
+        population: 26000000,
+        birthsToday: 1012,
+        deathsToday: 698,
         lifeExpectancy: 83.0,
         internetRisk: "Very stable",
         coords: [-25.2744, 133.7751],
       }
     };
 
-    // Inicializa o mapa Leaflet
-    const map = L.map('map').setView([20, 0], 2);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    // Inicializa mapa
+    const map = L.map('map', {
+      minZoom: 2,
       maxZoom: 5,
-      minZoom: 2
-    }).addTo(map);
+      zoomControl: true,
+      attributionControl: false
+    }).setView([20, 0], 2);
 
-    // Referência ao container da lista e detalhes
+    // Tile layer estilizado escuro (CartoDB Dark Matter)
+    L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      {
+        maxZoom: 19,
+        subdomains: 'abcd',
+      }
+    ).addTo(map);
+
     const countryList = document.getElementById('country-list');
     const countryDetails = document.getElementById('country-details');
 
     let activeCountryCode = null;
     let markers = [];
 
-    // Função para criar itens na lista lateral
+    // Cria lista lateral
     function renderCountryList() {
       countryList.innerHTML = '';
       Object.entries(countryData).forEach(([code, data]) => {
@@ -215,73 +308,142 @@
 
         div.addEventListener('click', () => {
           selectCountry(code);
-          // centralizar o mapa na posição do país selecionado
-          map.setView(data.coords, 4, {animate: true});
+          map.flyTo(data.coords, 4, { duration: 1.2 });
         });
 
         countryList.appendChild(div);
       });
     }
 
-    // Função para atualizar detalhes do país selecionado
+    // Atualiza o painel de detalhes, incluindo gráficos
     function updateCountryDetails(code) {
       const data = countryData[code];
       if (!data) {
         countryDetails.innerHTML = `<p>Data not available.</p>`;
         return;
       }
-      countryDetails.innerHTML = `
-        <div id="header-text">${data.name}</div>
-        <p><b>Population:</b> ${data.population.toLocaleString()}</p>
-        <p><b>Births Today:</b> ${data.birthsToday.toLocaleString()}</p>
-        <p><b>Deaths Today:</b> ${data.deathsToday.toLocaleString()}</p>
-        <p><b>Life Expectancy:</b> ${data.lifeExpectancy} years</p>
-        <p><b>Internet Risk Level:</b> ${data.internetRisk}</p>
-      `;
-    }
 
-    // Função para marcar um país como ativo na lista
-    function setActiveCountryInList(code) {
-      const items = document.querySelectorAll('.country-item');
-      items.forEach(item => {
-        if (item.dataset.code === code) {
-          item.classList.add('active');
-        } else {
-          item.classList.remove('active');
+      countryDetails.innerHTML = `
+        <h2>${data.name}</h2>
+        <div id="details-text">
+          <p><strong>Population:</strong> ${data.population.toLocaleString()}</p>
+          <p><strong>Births Today:</strong> ${data.birthsToday.toLocaleString()}</p>
+          <p><strong>Deaths Today:</strong> ${data.deathsToday.toLocaleString()}</p>
+          <p><strong>Life Expectancy:</strong> ${data.lifeExpectancy} years</p>
+          <p><strong>Internet Risk Level:</strong> ${data.internetRisk}</p>
+        </div>
+        <div id="charts">
+          <canvas id="popChart"></canvas>
+          <canvas id="birthChart"></canvas>
+          <canvas id="deathChart"></canvas>
+        </div>
+      `;
+
+      // Criar gráficos Chart.js para população, nascimentos e mortes
+      const popCtx = document.getElementById('popChart').getContext('2d');
+      const birthCtx = document.getElementById('birthChart').getContext('2d');
+      const deathCtx = document.getElementById('deathChart').getContext('2d');
+
+      // Limpar gráficos anteriores (se existirem)
+      if(window.popChartInstance) window.popChartInstance.destroy();
+      if(window.birthChartInstance) window.birthChartInstance.destroy();
+      if(window.deathChartInstance) window.deathChartInstance.destroy();
+
+      window.popChartInstance = new Chart(popCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Population'],
+          datasets: [{
+            label: 'Population',
+            data: [data.population],
+            backgroundColor: ['#1fb57f'],
+            hoverOffset: 20
+          }]
+        },
+        options: {
+          cutout: '70%',
+          plugins: { legend: { display: false }, tooltip: { enabled: true }},
+          animation: { duration: 1200, easing: 'easeOutBounce' }
+        }
+      });
+
+      window.birthChartInstance = new Chart(birthCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Births Today'],
+          datasets: [{
+            label: 'Births',
+            data: [data.birthsToday],
+            backgroundColor: '#76c893'
+          }]
+        },
+        options: {
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: false }, tooltip: { enabled: true }},
+          animation: { duration: 1200, easing: 'easeOutQuart' }
+        }
+      });
+
+      window.deathChartInstance = new Chart(deathCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Deaths Today'],
+          datasets: [{
+            label: 'Deaths',
+            data: [data.deathsToday],
+            backgroundColor: '#f25f5c'
+          }]
+        },
+        options: {
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: false }, tooltip: { enabled: true }},
+          animation: { duration: 1200, easing: 'easeOutQuart' }
         }
       });
     }
 
-    // Função geral para selecionar país
+    // Marca um país como ativo na lista lateral
+    function setActiveCountryInList(code) {
+      const items = document.querySelectorAll('.country-item');
+      items.forEach(item => {
+        item.classList.toggle('active', item.dataset.code === code);
+      });
+    }
+
+    // Seleciona país (clique lista/mapa)
     function selectCountry(code) {
+      if (activeCountryCode === code) return; // já ativo
+
       activeCountryCode = code;
       setActiveCountryInList(code);
       updateCountryDetails(code);
     }
 
-    // Cria marcadores no mapa para cada país com tooltip e clique para selecionar
+    // Cria marcadores do mapa com animação (círculos pulse)
     function addMarkers() {
+      // remove marcadores anteriores
       markers.forEach(m => map.removeLayer(m));
       markers = [];
 
       Object.entries(countryData).forEach(([code, data]) => {
-        const marker = L.circleMarker(data.coords, {
-          radius: 10,
-          fillColor: '#4caf50',
-          color: '#2e7d32',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.7
+        const pulseIcon = L.divIcon({
+          className: 'pulse-marker',
+          iconSize: [20, 20],
+          html: `<span style="background:#1fb57f"></span>`,
         });
 
-        marker.bindTooltip(`
-          <strong>${data.name}</strong><br/>
+        const marker = L.marker(data.coords, { icon: pulseIcon });
+
+        marker.bindTooltip(
+          `<strong>${data.name}</strong><br/>
           Population: ${data.population.toLocaleString()}<br/>
-          Life Expectancy: ${data.lifeExpectancy} years
-        `);
+          Life Expectancy: ${data.lifeExpectancy} years`,
+          { direction: 'top', offset: [0, -12], opacity: 0.8 }
+        );
 
         marker.on('click', () => {
           selectCountry(code);
+          map.flyTo(data.coords, 4, { duration: 1.3 });
         });
 
         marker.addTo(map);
@@ -289,26 +451,22 @@
       });
     }
 
-    // Simula atualização dos dados a cada 15 segundos
+    // Simula pequenas atualizações dos dados (cada 15s)
     function simulateDataUpdate() {
       Object.values(countryData).forEach(data => {
-        // pequenas variações aleatórias em números para parecer real-time
-        data.population += Math.floor(Math.random() * 1000) - 500; // +-500
-        if(data.population < 0) data.population = 0;
+        data.population = Math.max(0, data.population + Math.floor(Math.random() * 2000 - 1000));
+        data.birthsToday = Math.max(0, data.birthsToday + Math.floor(Math.random() * 100 - 50));
+        data.deathsToday = Math.max(0, data.deathsToday + Math.floor(Math.random() * 100 - 50));
 
-        data.birthsToday = Math.max(0, data.birthsToday + Math.floor(Math.random() * 200) - 100);
-        data.deathsToday = Math.max(0, data.deathsToday + Math.floor(Math.random() * 200) - 100);
-
-        // internet risk pode mudar de forma leve
-        const riskLevels = [
+        const risks = [
           "Stable",
           "Moderate - occasional outages",
           "High - frequent disruptions",
           "Very stable",
           "Moderate - heavy censorship risks"
         ];
-        if (Math.random() < 0.1) { // 10% chance de mudar
-          data.internetRisk = riskLevels[Math.floor(Math.random() * riskLevels.length)];
+        if(Math.random() < 0.15) {
+          data.internetRisk = risks[Math.floor(Math.random() * risks.length)];
         }
       });
     }
@@ -318,17 +476,50 @@
       simulateDataUpdate();
       renderCountryList();
       addMarkers();
-      if(activeCountryCode) {
-        updateCountryDetails(activeCountryCode);
-      }
+      if(activeCountryCode) updateCountryDetails(activeCountryCode);
     }
 
-    // Inicializa
-    updateAll();
+    // Inicializa o painel
+    renderCountryList();
+    addMarkers();
 
-    // Atualiza a cada 15s
+    // Atualiza tudo a cada 15s
     setInterval(updateAll, 15000);
 
+    // CSS para pulso dos marcadores no mapa
+    const style = document.createElement('style');
+    style.textContent = `
+      .pulse-marker span {
+        display: block;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #1fb57f;
+        box-shadow:
+          0 0 10px 2px #1fb57f88,
+          0 0 15px 8px #1fb57f55;
+        animation: pulse 2.5s infinite;
+        border: 2.5px solid #1fb57fcc;
+               margin-left: -9px;
+        margin-top: -9px;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(0.9);
+          opacity: 1;
+        }
+        70% {
+          transform: scale(1.4);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(0.9);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
   </script>
 </body>
 </html>
